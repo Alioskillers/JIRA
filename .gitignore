@@ -1,0 +1,17 @@
+.env
+JIRA.pem
+node_modules/
+.next/
+dist/
+build/
+*.log
+*.env
+.DS_Store
+.idea/
+.vscode/
+*.iml
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
