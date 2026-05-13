@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   PutCommand, GetCommand, ScanCommand, UpdateCommand, DeleteCommand, QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { PutObjectCommand, DeleteObjectCommand, GetObjectCommand, ListObjectVersionsCommand } from '@aws-sdk/client-s3';
+import { PutObjectCommand, DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, ListObjectVersionsCommand } from '@aws-sdk/client-s3';
 import { PublishCommand } from '@aws-sdk/client-sns';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
@@ -247,19 +247,24 @@ export class TasksService {
   private async attachPresignedUrl(item: any) {
     if (!item.imageKey) return item;
 
-    // Try resized bucket first; fall back to originals if Lambda hasn't processed it yet
+    // Use HeadObject to verify the file exists before generating the URL.
+    // Try resized bucket first (Lambda-processed); fall back to originals.
     for (const bucket of [this.resizedBucket, this.originsBucket]) {
       try {
+        await this.awsService.s3.send(new HeadObjectCommand({ Bucket: bucket, Key: item.imageKey }));
         const url = await getSignedUrl(
           this.awsService.s3,
           new GetObjectCommand({ Bucket: bucket, Key: item.imageKey }),
           { expiresIn: this.presignExpires },
         );
+        this.logger.debug(`Image URL generated from bucket=${bucket} key=${item.imageKey}`);
         return { ...item, imageUrl: url };
-      } catch (err: any) {
-        this.logger.warn(`Presigned URL failed for bucket=${bucket} key=${item.imageKey}: ${err?.message}`);
+      } catch {
+        // Object not in this bucket — try the next one
       }
     }
+
+    this.logger.warn(`Image not found in any bucket for key=${item.imageKey}`);
     return item;
   }
 }
