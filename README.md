@@ -2,20 +2,26 @@
 
 ## Architecture
 
-```
-CloudFront (https://d1kjmg4gujmstj.cloudfront.net)
-    ├── /api/* → ALB → ECS (NestJS backend, port 3000)
-    └── /*    → S3 static OR Next.js SSR (frontend)
+![Mini Jira High Availability Architecture](scripts/mini-jira-architecture.png)
 
-AWS Services:
-- Cognito (us-east-1_0EKgT0EKP)  — Auth / JWT
-- DynamoDB                         — All data storage
-- S3 (originals + resized buckets) — Image storage
-- SNS (task-assignment-topic)      — Task assignment notifications
-- SQS (task-assignment-queue)      — Async task processing
-- CloudWatch (MiniJira namespace)  — Metrics & dashboard
-- Lambda (image-resize, assignment-worker, daily-digest)
-```
+> Built with official AWS Architecture Icons. Deployed across **us-east-1a** and **us-east-1b** for high availability.
+
+### Architecture Overview
+
+| Layer | Service | Details |
+|---|---|---|
+| **CDN** | CloudFront | `d1kjmg4gujmstj.cloudfront.net` — global edge delivery |
+| **Network** | VPC | `10.0.0.0/16` — public + private subnets across 2 AZs |
+| **Load Balancer** | ALB | `mini-jira-alb` — internet-facing, routes to EC2:3000 |
+| **Compute** | EC2 + ASG | NestJS backend, Auto Scaling Group (min:1 max:2), 2 AZs |
+| **Auth** | Cognito | User Pool `us-east-1_0EKgT0EKP` — JWT token validation |
+| **Database** | DynamoDB | 6 tables: Tasks, Projects, Comments, Teams, Users, ActivityLog |
+| **Storage** | S3 | Originals bucket + Resized bucket (Lambda-processed) |
+| **Notifications** | SNS + SQS | task-assignment-topic fans out to email + SQS queue |
+| **Image Pipeline** | Lambda | S3 trigger → `image-resize` → sharp 300×300 → resized bucket |
+| **Worker** | Lambda | SQS trigger → `assignment-worker` → ActivityLog + CloudWatch |
+| **Digest** | Lambda + EventBridge | `cron(0 6 * * ? *)` (9 AM GMT+3) → daily-digest email |
+| **Monitoring** | CloudWatch | Dashboard + `overdue-tasks-alarm` → SNS |
 
 ## CloudFront URL
 **https://d1kjmg4gujmstj.cloudfront.net**
