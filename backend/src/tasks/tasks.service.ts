@@ -62,21 +62,50 @@ export class TasksService {
 
     await this.awsService.dynamoDb.send(new PutCommand({ TableName: this.table, Item: task }));
 
+    const priorityEmoji = { high: '🔴', medium: '🟡', low: '🟢' }[task.priority as string] ?? '⚪';
+    const deadlineFormatted = task.deadline ? new Date(task.deadline).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'No deadline set';
+    const managerName = requestingUser.name || requestingUser.email;
+
+    const emailBody = [
+      `Hi ${task.assigneeName},`,
+      ``,
+      `You have been assigned a new task by ${managerName}.`,
+      ``,
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      `  TASK DETAILS`,
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      `  Title      : ${task.title}`,
+      `  Priority   : ${priorityEmoji} ${task.priority.toUpperCase()}`,
+      `  Status     : ${(task.status as string).toUpperCase()}`,
+      `  Deadline   : ${deadlineFormatted}`,
+      `  Team       : ${dto.teamName || task.teamId}`,
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      ``,
+      task.description ? `Description:\n${task.description}\n` : '',
+      `Please log in to Mini Jira to view and manage this task.`,
+      ``,
+      `— The Mini Jira Team`,
+    ].filter(line => line !== undefined).join('\n');
+
+    const sqsPayload = JSON.stringify({
+      type: 'TASK_ASSIGNED',
+      taskId,
+      taskTitle: task.title,
+      assigneeId: task.assigneeId,
+      assigneeName: task.assigneeName,
+      assigneeEmail: dto.assigneeEmail || '',
+      teamId: task.teamId,
+      teamName: dto.teamName || '',
+      deadline: task.deadline,
+      priority: task.priority,
+      managerName,
+    });
+
     await this.awsService.sns.send(new PublishCommand({
       TopicArn: this.snsTopicArn,
-      Message: JSON.stringify({
-        type: 'TASK_ASSIGNED',
-        taskId,
-        taskTitle: task.title,
-        assigneeId: task.assigneeId,
-        assigneeName: task.assigneeName,
-        assigneeEmail: dto.assigneeEmail || '',
-        teamId: task.teamId,
-        teamName: dto.teamName || '',
-        deadline: task.deadline,
-        priority: task.priority,
-        managerName: requestingUser.name || requestingUser.email,
-      }),
+      Subject: `[Mini Jira] New Task Assigned: ${task.title}`,
+      Message: JSON.stringify({ default: sqsPayload, email: emailBody, sqs: sqsPayload }),
+      MessageStructure: 'json',
       MessageAttributes: {
         type: { DataType: 'String', StringValue: 'TASK_ASSIGNED' },
       },

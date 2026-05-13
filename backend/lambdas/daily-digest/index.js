@@ -23,18 +23,41 @@ exports.handler = async () => {
   const tasks = result.Items || [];
   console.log(`Found ${tasks.length} tasks due today`);
 
-  const publishResults = await Promise.allSettled(tasks.map(task =>
-    sns.send(new PublishCommand({
+  const priorityEmoji = { high: '🔴', medium: '🟡', low: '🟢' };
+
+  const publishResults = await Promise.allSettled(tasks.map(task => {
+    const emoji = priorityEmoji[task.priority] ?? '⚪';
+    const emailBody = [
+      `Hi ${task.assigneeName},`,
+      ``,
+      `This is your daily reminder from Mini Jira. You have a task due today.`,
+      ``,
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      `  TASK DUE TODAY`,
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      `  Title    : ${task.title}`,
+      `  Priority : ${emoji} ${task.priority.toUpperCase()}`,
+      `  Status   : ${task.status.toUpperCase()}`,
+      `  Deadline : ${today}`,
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      ``,
+      task.description ? `Description:\n${task.description}\n` : '',
+      `Please log in to Mini Jira to update or complete this task before the end of day.`,
+      ``,
+      `— The Mini Jira Team`,
+    ].filter(Boolean).join('\n');
+
+    return sns.send(new PublishCommand({
       TopicArn: SNS_DIGEST_TOPIC_ARN,
-      Subject: `Task Due Today: ${task.title}`,
-      Message: `Hi ${task.assigneeName}, your task '${task.title}' is due today. Priority: ${task.priority}. Status: ${task.status}.`,
+      Subject: `[Mini Jira] Task Due Today: ${task.title}`,
+      Message: emailBody,
       MessageAttributes: {
         taskId: { DataType: 'String', StringValue: task.taskId },
         assigneeId: { DataType: 'String', StringValue: task.assigneeId },
         teamId: { DataType: 'String', StringValue: task.teamId },
       },
-    }))
-  ));
+    }));
+  }));
 
   const succeeded = publishResults.filter(r => r.status === 'fulfilled').length;
   const failed = publishResults.filter(r => r.status === 'rejected').length;
