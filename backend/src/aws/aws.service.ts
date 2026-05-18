@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { fromEnv } from '@aws-sdk/credential-providers';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { S3Client } from '@aws-sdk/client-s3';
@@ -20,11 +19,7 @@ export class AwsService {
 
   constructor(private configService: ConfigService) {
     const region = this.configService.get<string>('AWS_REGION')!;
-
-    // Explicitly use env var credentials — ignores AWS_PROFILE and ~/.aws/credentials
-    const credentials = fromEnv();
-
-    const clientConfig = { region, credentials };
+    const clientConfig = { region };
 
     const dynamoClient = new DynamoDBClient(clientConfig);
     this.dynamoDb = DynamoDBDocumentClient.from(dynamoClient, {
@@ -37,7 +32,6 @@ export class AwsService {
     this.cloudWatch = new CloudWatchClient(clientConfig);
     this.cognito = new CognitoIdentityProviderClient({
       region: this.configService.get<string>('COGNITO_REGION')!,
-      credentials,
     });
   }
 }
