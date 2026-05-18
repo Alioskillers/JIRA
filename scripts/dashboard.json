@@ -1,0 +1,902 @@
+{
+  "widgets": [
+    {
+      "type": "text",
+      "x": 0,
+      "y": 0,
+      "width": 24,
+      "height": 1,
+      "properties": {
+        "markdown": "# \ud83d\ude80 Mini Jira \u2014 Production Dashboard\nReal-time monitoring across all services \u00b7 Region: us-east-1"
+      }
+    },
+    {
+      "type": "text",
+      "x": 0,
+      "y": 1,
+      "width": 24,
+      "height": 1,
+      "properties": {
+        "markdown": "## \ud83d\udcca Application Metrics"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 2,
+      "width": 6,
+      "height": 6,
+      "properties": {
+        "title": "Tasks Created Per Day",
+        "view": "timeSeries",
+        "stat": "Sum",
+        "period": 86400,
+        "metrics": [
+          [
+            "MiniJira",
+            "TasksCreated"
+          ]
+        ],
+        "yAxis": {
+          "left": {
+            "min": 0
+          }
+        },
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 6,
+      "y": 2,
+      "width": 6,
+      "height": 6,
+      "properties": {
+        "title": "Tasks Closed Per Day (by Team)",
+        "view": "timeSeries",
+        "stat": "Sum",
+        "period": 86400,
+        "metrics": [
+          [
+            "MiniJira",
+            "TasksClosed",
+            "TeamId",
+            "team-backend",
+            {
+              "label": "Backend"
+            }
+          ],
+          [
+            "MiniJira",
+            "TasksClosed",
+            "TeamId",
+            "team-frontend",
+            {
+              "label": "Frontend"
+            }
+          ]
+        ],
+        "yAxis": {
+          "left": {
+            "min": 0
+          }
+        },
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 2,
+      "width": 6,
+      "height": 6,
+      "properties": {
+        "title": "Avg Time to Close (Hours)",
+        "view": "timeSeries",
+        "stat": "Average",
+        "period": 86400,
+        "metrics": [
+          [
+            "MiniJira",
+            "TimeToCloseHours",
+            "TeamId",
+            "team-backend",
+            {
+              "label": "Backend"
+            }
+          ],
+          [
+            "MiniJira",
+            "TimeToCloseHours",
+            "TeamId",
+            "team-frontend",
+            {
+              "label": "Frontend"
+            }
+          ]
+        ],
+        "yAxis": {
+          "left": {
+            "min": 0
+          }
+        },
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 18,
+      "y": 2,
+      "width": 6,
+      "height": 6,
+      "properties": {
+        "title": "Overdue Tasks Count",
+        "view": "timeSeries",
+        "stat": "Maximum",
+        "period": 3600,
+        "metrics": [
+          [
+            "MiniJira",
+            "OverdueTasks"
+          ]
+        ],
+        "annotations": {
+          "horizontal": [
+            {
+              "label": "Alarm threshold",
+              "value": 10,
+              "color": "#d62728"
+            }
+          ]
+        },
+        "yAxis": {
+          "left": {
+            "min": 0
+          }
+        },
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 8,
+      "width": 6,
+      "height": 6,
+      "properties": {
+        "title": "Tasks Assigned Per Team",
+        "view": "timeSeries",
+        "stat": "Sum",
+        "period": 86400,
+        "metrics": [
+          [
+            "MiniJira",
+            "TasksAssignedPerTeam",
+            "TeamId",
+            "team-backend",
+            {
+              "label": "Backend"
+            }
+          ],
+          [
+            "MiniJira",
+            "TasksAssignedPerTeam",
+            "TeamId",
+            "team-frontend",
+            {
+              "label": "Frontend"
+            }
+          ]
+        ],
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "text",
+      "x": 0,
+      "y": 14,
+      "width": 24,
+      "height": 1,
+      "properties": {
+        "markdown": "## \ud83d\udda5\ufe0f EC2 & Auto Scaling"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 15,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "EC2 CPU Utilization",
+        "view": "timeSeries",
+        "stat": "Average",
+        "period": 300,
+        "metrics": [
+          [
+            "AWS/EC2",
+            "CPUUtilization",
+            "InstanceId",
+            "i-0dffa05361cec1d38",
+            {
+              "label": "Instance 1"
+            }
+          ],
+          [
+            "AWS/EC2",
+            "CPUUtilization",
+            "InstanceId",
+            "i-0e5654a032eae5d81",
+            {
+              "label": "Instance 2"
+            }
+          ],
+          [
+            "AWS/EC2",
+            "CPUUtilization",
+            "AutoScalingGroupName",
+            "mini-jira-asg",
+            {
+              "label": "ASG Average",
+              "stat": "Average"
+            }
+          ]
+        ],
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "max": 100
+          }
+        },
+        "annotations": {
+          "horizontal": [
+            {
+              "label": "Scale-out threshold",
+              "value": 70,
+              "color": "#ff7f0e"
+            }
+          ]
+        },
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 8,
+      "y": 15,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "EC2 Network In/Out",
+        "view": "timeSeries",
+        "stat": "Average",
+        "period": 300,
+        "metrics": [
+          [
+            "AWS/EC2",
+            "NetworkIn",
+            "AutoScalingGroupName",
+            "mini-jira-asg",
+            {
+              "label": "Network In"
+            }
+          ],
+          [
+            "AWS/EC2",
+            "NetworkOut",
+            "AutoScalingGroupName",
+            "mini-jira-asg",
+            {
+              "label": "Network Out"
+            }
+          ]
+        ],
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 16,
+      "y": 15,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "ASG Group Size",
+        "view": "timeSeries",
+        "stat": "Average",
+        "period": 300,
+        "metrics": [
+          [
+            "AWS/AutoScaling",
+            "GroupInServiceInstances",
+            "AutoScalingGroupName",
+            "mini-jira-asg",
+            {
+              "label": "In Service"
+            }
+          ],
+          [
+            "AWS/AutoScaling",
+            "GroupDesiredCapacity",
+            "AutoScalingGroupName",
+            "mini-jira-asg",
+            {
+              "label": "Desired"
+            }
+          ]
+        ],
+        "yAxis": {
+          "left": {
+            "min": 0
+          }
+        },
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "text",
+      "x": 0,
+      "y": 21,
+      "width": 24,
+      "height": 1,
+      "properties": {
+        "markdown": "## \u26a1 Lambda Functions"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 22,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "image-resize \u2014 Invocations & Errors",
+        "view": "timeSeries",
+        "stat": "Sum",
+        "period": 300,
+        "metrics": [
+          [
+            "AWS/Lambda",
+            "Invocations",
+            "FunctionName",
+            "image-resize",
+            {
+              "label": "Invocations"
+            }
+          ],
+          [
+            "AWS/Lambda",
+            "Errors",
+            "FunctionName",
+            "image-resize",
+            {
+              "label": "Errors",
+              "color": "#d62728"
+            }
+          ]
+        ],
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 8,
+      "y": 22,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "assignment-worker \u2014 Invocations & Errors",
+        "view": "timeSeries",
+        "stat": "Sum",
+        "period": 300,
+        "metrics": [
+          [
+            "AWS/Lambda",
+            "Invocations",
+            "FunctionName",
+            "assignment-worker",
+            {
+              "label": "Invocations"
+            }
+          ],
+          [
+            "AWS/Lambda",
+            "Errors",
+            "FunctionName",
+            "assignment-worker",
+            {
+              "label": "Errors",
+              "color": "#d62728"
+            }
+          ]
+        ],
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 16,
+      "y": 22,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "daily-digest \u2014 Invocations & Errors",
+        "view": "timeSeries",
+        "stat": "Sum",
+        "period": 300,
+        "metrics": [
+          [
+            "AWS/Lambda",
+            "Invocations",
+            "FunctionName",
+            "daily-digest",
+            {
+              "label": "Invocations"
+            }
+          ],
+          [
+            "AWS/Lambda",
+            "Errors",
+            "FunctionName",
+            "daily-digest",
+            {
+              "label": "Errors",
+              "color": "#d62728"
+            }
+          ]
+        ],
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 28,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "Lambda Duration (ms) \u2014 All Functions",
+        "view": "timeSeries",
+        "stat": "Average",
+        "period": 300,
+        "metrics": [
+          [
+            "AWS/Lambda",
+            "Duration",
+            "FunctionName",
+            "image-resize",
+            {
+              "label": "image-resize"
+            }
+          ],
+          [
+            "AWS/Lambda",
+            "Duration",
+            "FunctionName",
+            "assignment-worker",
+            {
+              "label": "assignment-worker"
+            }
+          ],
+          [
+            "AWS/Lambda",
+            "Duration",
+            "FunctionName",
+            "daily-digest",
+            {
+              "label": "daily-digest"
+            }
+          ]
+        ],
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 28,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "Lambda Throttles \u2014 All Functions",
+        "view": "timeSeries",
+        "stat": "Sum",
+        "period": 300,
+        "metrics": [
+          [
+            "AWS/Lambda",
+            "Throttles",
+            "FunctionName",
+            "image-resize"
+          ],
+          [
+            "AWS/Lambda",
+            "Throttles",
+            "FunctionName",
+            "assignment-worker"
+          ],
+          [
+            "AWS/Lambda",
+            "Throttles",
+            "FunctionName",
+            "daily-digest"
+          ]
+        ],
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "text",
+      "x": 0,
+      "y": 34,
+      "width": 24,
+      "height": 1,
+      "properties": {
+        "markdown": "## \ud83d\uddc4\ufe0f DynamoDB Tables"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 35,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "DynamoDB \u2014 Read Capacity (All Tables)",
+        "view": "timeSeries",
+        "stat": "Sum",
+        "period": 300,
+        "metrics": [
+          [
+            "AWS/DynamoDB",
+            "ConsumedReadCapacityUnits",
+            "TableName",
+            "Tasks"
+          ],
+          [
+            "AWS/DynamoDB",
+            "ConsumedReadCapacityUnits",
+            "TableName",
+            "Projects"
+          ],
+          [
+            "AWS/DynamoDB",
+            "ConsumedReadCapacityUnits",
+            "TableName",
+            "Comments"
+          ],
+          [
+            "AWS/DynamoDB",
+            "ConsumedReadCapacityUnits",
+            "TableName",
+            "Teams"
+          ],
+          [
+            "AWS/DynamoDB",
+            "ConsumedReadCapacityUnits",
+            "TableName",
+            "Users"
+          ]
+        ],
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 8,
+      "y": 35,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "DynamoDB \u2014 Write Capacity (All Tables)",
+        "view": "timeSeries",
+        "stat": "Sum",
+        "period": 300,
+        "metrics": [
+          [
+            "AWS/DynamoDB",
+            "ConsumedWriteCapacityUnits",
+            "TableName",
+            "Tasks"
+          ],
+          [
+            "AWS/DynamoDB",
+            "ConsumedWriteCapacityUnits",
+            "TableName",
+            "Projects"
+          ],
+          [
+            "AWS/DynamoDB",
+            "ConsumedWriteCapacityUnits",
+            "TableName",
+            "Comments"
+          ],
+          [
+            "AWS/DynamoDB",
+            "ConsumedWriteCapacityUnits",
+            "TableName",
+            "Teams"
+          ],
+          [
+            "AWS/DynamoDB",
+            "ConsumedWriteCapacityUnits",
+            "TableName",
+            "ActivityLog"
+          ]
+        ],
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 16,
+      "y": 35,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "DynamoDB \u2014 Latency (Tasks Table)",
+        "view": "timeSeries",
+        "stat": "Average",
+        "period": 300,
+        "metrics": [
+          [
+            "AWS/DynamoDB",
+            "SuccessfulRequestLatency",
+            "TableName",
+            "Tasks",
+            "Operation",
+            "GetItem"
+          ],
+          [
+            "AWS/DynamoDB",
+            "SuccessfulRequestLatency",
+            "TableName",
+            "Tasks",
+            "Operation",
+            "PutItem"
+          ],
+          [
+            "AWS/DynamoDB",
+            "SuccessfulRequestLatency",
+            "TableName",
+            "Tasks",
+            "Operation",
+            "Query"
+          ],
+          [
+            "AWS/DynamoDB",
+            "SuccessfulRequestLatency",
+            "TableName",
+            "Tasks",
+            "Operation",
+            "Scan"
+          ]
+        ],
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "text",
+      "x": 0,
+      "y": 41,
+      "width": 24,
+      "height": 1,
+      "properties": {
+        "markdown": "## \ud83e\udea3 S3 / \ud83d\udce3 SNS / \ud83d\udce8 SQS / \ud83d\udd10 Cognito"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 42,
+      "width": 6,
+      "height": 6,
+      "properties": {
+        "title": "S3 \u2014 All Requests",
+        "view": "timeSeries",
+        "stat": "Sum",
+        "period": 3600,
+        "metrics": [
+          [
+            "AWS/S3",
+            "AllRequests",
+            "BucketName",
+            "mini-jira-originals-438987839653",
+            "FilterId",
+            "EntireS3Bucket",
+            {
+              "label": "Originals"
+            }
+          ],
+          [
+            "AWS/S3",
+            "AllRequests",
+            "BucketName",
+            "mini-jira-resized-438987839653",
+            "FilterId",
+            "EntireS3Bucket",
+            {
+              "label": "Resized"
+            }
+          ]
+        ],
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 6,
+      "y": 42,
+      "width": 6,
+      "height": 6,
+      "properties": {
+        "title": "SNS \u2014 Messages Published",
+        "view": "timeSeries",
+        "stat": "Sum",
+        "period": 3600,
+        "metrics": [
+          [
+            "AWS/SNS",
+            "NumberOfMessagesPublished",
+            "TopicName",
+            "task-assignment-topic",
+            {
+              "label": "Task Assignment"
+            }
+          ],
+          [
+            "AWS/SNS",
+            "NumberOfMessagesPublished",
+            "TopicName",
+            "daily-digest-topic",
+            {
+              "label": "Daily Digest"
+            }
+          ]
+        ],
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 42,
+      "width": 6,
+      "height": 6,
+      "properties": {
+        "title": "SQS \u2014 Messages (Assignment Queue)",
+        "view": "timeSeries",
+        "stat": "Sum",
+        "period": 300,
+        "metrics": [
+          [
+            "AWS/SQS",
+            "NumberOfMessagesSent",
+            "QueueName",
+            "task-assignment-queue",
+            {
+              "label": "Sent"
+            }
+          ],
+          [
+            "AWS/SQS",
+            "NumberOfMessagesDeleted",
+            "QueueName",
+            "task-assignment-queue",
+            {
+              "label": "Processed"
+            }
+          ],
+          [
+            "AWS/SQS",
+            "ApproximateNumberOfMessagesNotVisible",
+            "QueueName",
+            "task-assignment-queue",
+            {
+              "label": "In-flight"
+            }
+          ]
+        ],
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 18,
+      "y": 42,
+      "width": 6,
+      "height": 6,
+      "properties": {
+        "title": "Cognito \u2014 Sign-in Attempts",
+        "view": "timeSeries",
+        "stat": "Sum",
+        "period": 3600,
+        "metrics": [
+          [
+            "AWS/Cognito",
+            "SignInSuccesses",
+            "UserPool",
+            "us-east-1_0EKgT0EKP",
+            "UserPoolClient",
+            "ALL",
+            {
+              "label": "Successes"
+            }
+          ],
+          [
+            "AWS/Cognito",
+            "SignInThrottles",
+            "UserPool",
+            "us-east-1_0EKgT0EKP",
+            "UserPoolClient",
+            "ALL",
+            {
+              "label": "Throttles"
+            }
+          ]
+        ],
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "text",
+      "x": 0,
+      "y": 48,
+      "width": 24,
+      "height": 1,
+      "properties": {
+        "markdown": "## \u26a0\ufe0f Alarms & ALB"
+      }
+    },
+    {
+      "type": "alarm",
+      "x": 0,
+      "y": 49,
+      "width": 12,
+      "height": 4,
+      "properties": {
+        "title": "Active Alarms",
+        "alarms": [
+          "arn:aws:cloudwatch:us-east-1:438987839653:alarm:overdue-tasks-alarm",
+          "arn:aws:cloudwatch:us-east-1:438987839653:alarm:TargetTracking-mini-jira-asg-AlarmHigh-e9256008-3fa0-4f72-957e-6698ab7e14fe",
+          "arn:aws:cloudwatch:us-east-1:438987839653:alarm:TargetTracking-mini-jira-asg-AlarmLow-1706287c-378b-4960-8cd5-386f02c7f661"
+        ]
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 49,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "ALB \u2014 Request Count & 5xx Errors",
+        "view": "timeSeries",
+        "stat": "Sum",
+        "period": 300,
+        "metrics": [
+          [
+            "AWS/ApplicationELB",
+            "RequestCount",
+            "LoadBalancer",
+            "app/mini-jira-alb/4f5b0507a589755e",
+            {
+              "label": "Requests"
+            }
+          ],
+          [
+            "AWS/ApplicationELB",
+            "HTTPCode_ELB_5XX_Count",
+            "LoadBalancer",
+            "app/mini-jira-alb/4f5b0507a589755e",
+            {
+              "label": "5xx Errors",
+              "color": "#d62728"
+            }
+          ]
+        ],
+        "region": "us-east-1"
+      }
+    }
+  ]
+}

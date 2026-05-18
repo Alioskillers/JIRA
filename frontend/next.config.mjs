@@ -2,7 +2,16 @@
 const nextConfig = {
   output: 'standalone',
   images: {
-    domains: ['mini-jira-resized-438987839653.s3.amazonaws.com', 'd1kjmg4gujmstj.cloudfront.net'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.s3.amazonaws.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.cloudfront.net',
+      },
+    ],
   },
 };
 

@@ -18,17 +18,17 @@ const features = [
   {
     icon: BarChart3,
     title: 'Real-time Metrics',
-    description: 'CloudWatch-powered dashboards give you live insight into team velocity and overdue work.',
+    description: 'Real-time dashboards give you live insight into team velocity and overdue work.',
   },
   {
     icon: Zap,
     title: 'Instant Notifications',
-    description: 'SNS-driven alerts keep everyone in sync the moment a task is assigned or updated.',
+    description: 'Instant alerts keep everyone in sync the moment a task is assigned or updated.',
   },
   {
     icon: Shield,
     title: 'Secure by Design',
-    description: 'AWS Cognito JWT authentication with server-side team isolation on every request.',
+    description: 'Enterprise authentication with server-side team isolation enforced on every request.',
   },
   {
     icon: Globe,
@@ -58,7 +58,7 @@ const testimonials = [
     initials: 'OH',
   },
   {
-    quote: 'The CloudWatch integration means I always know how the team is performing without asking anyone.',
+    quote: 'The live dashboards mean I always know how the team is performing without asking anyone.',
     name: 'Ali Karim',
     role: 'Engineering Manager',
     initials: 'AK',
@@ -110,7 +110,7 @@ export default function LandingPage() {
         <div className="relative max-w-4xl mx-auto">
           <div className="inline-flex items-center gap-2 border border-white/20 bg-white/5 rounded-full px-4 py-1.5 text-sm text-white/70 mb-8">
             <Star className="w-3.5 h-3.5 text-white" />
-            Built on AWS · Cognito · DynamoDB · S3
+            Cloud-native · Highly Available · Auto-scaling
           </div>
 
           <h1 className="text-6xl md:text-7xl font-bold tracking-tight leading-none mb-6">
@@ -232,9 +232,9 @@ export default function LandingPage() {
               <div className="space-y-6">
                 {[
                   { step: '01', title: 'Manager creates tasks', desc: 'Assign work to the right person on the right team with priority and deadline.' },
-                  { step: '02', title: 'Team gets notified', desc: 'Instant SNS email notification fires the moment a task is assigned.' },
+                  { step: '02', title: 'Team gets notified', desc: 'Email notification fires the moment a task is assigned.' },
                   { step: '03', title: 'Progress on Kanban', desc: 'Drag cards across columns. Status syncs to the backend in real time.' },
-                  { step: '04', title: 'Metrics auto-update', desc: 'CloudWatch dashboards reflect every status change, no manual reporting.' },
+                  { step: '04', title: 'Metrics auto-update', desc: 'Live dashboards reflect every status change, no manual reporting.' },
                 ].map(item => (
                   <div key={item.step} className="flex gap-4">
                     <span className="text-xs font-mono text-white/20 mt-1 flex-shrink-0">{item.step}</span>
@@ -342,7 +342,7 @@ export default function LandingPage() {
             </div>
             <span className="text-sm text-white/40">Mini Jira</span>
           </div>
-          <p className="text-xs text-white/20">Built with NestJS · Next.js · AWS</p>
+          <p className="text-xs text-white/20">Mini Jira © 2026</p>
         </div>
       </footer>
     </div>

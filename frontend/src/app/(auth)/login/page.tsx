@@ -130,12 +130,6 @@ export default function LoginPage() {
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
-
-          <div className="mt-8 pt-8 border-t border-white/10">
-            <p className="text-xs text-white/20 text-center">
-              Protected by AWS Cognito · JWT RS256
-            </p>
-          </div>
         </div>
       </div>
     </div>
