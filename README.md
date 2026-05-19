@@ -2,7 +2,7 @@
 
 ## Architecture
 
-![Mini Jira High Availability Architecture](scripts/mini-jira-architecture.png)
+![Mini Jira High Availability Architecture](scripts/mini-jira-architecture.drawio.png)
 
 > Built with official AWS Architecture Icons. Deployed across **us-east-1a** and **us-east-1b** for high availability.
 
