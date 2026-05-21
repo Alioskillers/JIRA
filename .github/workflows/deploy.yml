@@ -1,4 +1,4 @@
-name: Deploy to EC2
+name: Deploy to EC2 (ASG)
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    name: Build & Deploy
+    name: Build & Deploy to all ASG instances
     runs-on: ubuntu-latest
 
     steps:
@@ -21,70 +21,185 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Deploy via SSM
+      - name: Get all healthy instance IDs from ASG
+        id: get-instances
         run: |
-          aws ssm send-command \
-            --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
+          INSTANCE_IDS=$(aws autoscaling describe-auto-scaling-groups \
+            --auto-scaling-group-names "${{ secrets.ASG_NAME }}" \
+            --region us-east-1 \
+            --query 'AutoScalingGroups[0].Instances[?HealthStatus==`Healthy`].InstanceId' \
+            --output text | tr '\t' ' ')
+
+          echo "instances=$INSTANCE_IDS" >> $GITHUB_OUTPUT
+          echo "Found instances: $INSTANCE_IDS"
+
+          if [ -z "$INSTANCE_IDS" ]; then
+            echo "No healthy instances found in ASG!"
+            exit 1
+          fi
+
+      - name: Send deploy command to all instances via SSM
+        id: send-command
+        run: |
+          INSTANCE_IDS="${{ steps.get-instances.outputs.instances }}"
+
+          # Build SSM targets array from instance IDs
+          TARGETS=$(echo $INSTANCE_IDS | tr ' ' '\n' | \
+            jq -Rs 'split("\n") | map(select(length > 0)) | {"Key": "InstanceIds", "Values": .}' | \
+            jq -s '.')
+
+          COMMAND_ID=$(aws ssm send-command \
+            --targets "$TARGETS" \
             --document-name "AWS-RunShellScript" \
             --parameters 'commands=[
               "set -e",
-              "cd /home/ec2-user/JIRA",
-              "git pull origin main",
+              "APP_DIR=/home/ec2-user/JIRA",
+              "echo \"=== Starting deployment on $(hostname) ===\"",
+              "cd $APP_DIR",
+              "git fetch origin main",
+              "git reset --hard origin/main",
               "echo \"=== Building backend ===\"",
-              "cd backend",
+              "cd $APP_DIR/backend",
               "npm install --production=false",
               "npm run build",
-              "cd ..",
               "echo \"=== Building frontend ===\"",
-              "cd frontend",
+              "cd $APP_DIR/frontend",
               "npm install",
               "npm run build",
-              "cd ..",
               "echo \"=== Restarting PM2 ===\"",
+              "cd $APP_DIR",
               "pm2 restart backend || pm2 start backend/dist/main.js --name backend",
-              "pm2 restart frontend || pm2 start \"npm start\" --name frontend --cwd frontend",
+              "pm2 restart frontend || pm2 start npm --name frontend -- start --prefix frontend",
               "pm2 save",
-              "echo \"=== Deploy complete ===\""
+              "echo \"=== Deployment complete on $(hostname) ===\""
             ]' \
-            --timeout-seconds 300 \
+            --timeout-seconds 600 \
+            --region us-east-1 \
+            --output-s3-bucket-name "${{ secrets.DEPLOY_LOG_BUCKET }}" \
+            --query 'Command.CommandId' \
+            --output text 2>/dev/null || \
+          aws ssm send-command \
+            --targets "$TARGETS" \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=[
+              "set -e",
+              "APP_DIR=/home/ec2-user/JIRA",
+              "echo \"=== Starting deployment on $(hostname) ===\"",
+              "cd $APP_DIR",
+              "git fetch origin main",
+              "git reset --hard origin/main",
+              "echo \"=== Building backend ===\"",
+              "cd $APP_DIR/backend",
+              "npm install --production=false",
+              "npm run build",
+              "echo \"=== Building frontend ===\"",
+              "cd $APP_DIR/frontend",
+              "npm install",
+              "npm run build",
+              "echo \"=== Restarting PM2 ===\"",
+              "cd $APP_DIR",
+              "pm2 restart backend || pm2 start backend/dist/main.js --name backend",
+              "pm2 restart frontend || pm2 start npm --name frontend -- start --prefix frontend",
+              "pm2 save",
+              "echo \"=== Deployment complete on $(hostname) ===\""
+            ]' \
+            --timeout-seconds 600 \
             --region us-east-1 \
             --query 'Command.CommandId' \
-            --output text > /tmp/command_id.txt
+            --output text)
 
-          echo "SSM Command ID: $(cat /tmp/command_id.txt)"
+          echo "command_id=$COMMAND_ID" >> $GITHUB_OUTPUT
+          echo "SSM Command ID: $COMMAND_ID"
 
-      - name: Wait for deployment to finish
+      - name: Send deploy command to all instances (no S3 bucket)
+        id: send-command-simple
+        if: steps.send-command.outcome == 'failure'
         run: |
-          COMMAND_ID=$(cat /tmp/command_id.txt)
-          INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID }}"
+          INSTANCE_IDS="${{ steps.get-instances.outputs.instances }}"
+          TARGETS=$(python3 -c "
+          import json, sys
+          ids = '$INSTANCE_IDS'.split()
+          print(json.dumps([{'Key': 'InstanceIds', 'Values': ids}]))
+          ")
 
-          echo "Waiting for command $COMMAND_ID to complete..."
-          for i in $(seq 1 30); do
-            STATUS=$(aws ssm get-command-invocation \
-              --command-id "$COMMAND_ID" \
-              --instance-id "$INSTANCE_ID" \
-              --query 'Status' --output text 2>/dev/null || echo "Pending")
+          COMMAND_ID=$(aws ssm send-command \
+            --targets "$TARGETS" \
+            --document-name "AWS-RunShellScript" \
+            --parameters commands='["set -e","cd /home/ec2-user/JIRA","git fetch origin main","git reset --hard origin/main","cd backend && npm install --production=false && npm run build && cd ..","cd frontend && npm install && npm run build && cd ..","pm2 restart backend || pm2 start backend/dist/main.js --name backend","pm2 restart frontend || pm2 start npm --name frontend -- start --prefix frontend","pm2 save","echo DONE"]' \
+            --timeout-seconds 600 \
+            --region us-east-1 \
+            --query 'Command.CommandId' \
+            --output text)
 
-            echo "Attempt $i: Status = $STATUS"
+          echo "command_id=$COMMAND_ID" >> $GITHUB_OUTPUT
+          echo "SSM Command ID: $COMMAND_ID"
 
-            if [ "$STATUS" = "Success" ]; then
-              echo "Deployment succeeded!"
-              aws ssm get-command-invocation \
+      - name: Wait for deployment on all instances
+        run: |
+          COMMAND_ID="${{ steps.send-command.outputs.command_id || steps.send-command-simple.outputs.command_id }}"
+          INSTANCE_IDS="${{ steps.get-instances.outputs.instances }}"
+
+          echo "Waiting for command $COMMAND_ID on instances: $INSTANCE_IDS"
+
+          FAILED=0
+          for INSTANCE_ID in $INSTANCE_IDS; do
+            echo ""
+            echo "--- Polling instance $INSTANCE_ID ---"
+            SUCCESS=0
+            for i in $(seq 1 60); do
+              STATUS=$(aws ssm get-command-invocation \
                 --command-id "$COMMAND_ID" \
                 --instance-id "$INSTANCE_ID" \
-                --query 'StandardOutputContent' --output text
-              exit 0
-            elif [ "$STATUS" = "Failed" ] || [ "$STATUS" = "TimedOut" ] || [ "$STATUS" = "Cancelled" ]; then
-              echo "Deployment failed with status: $STATUS"
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "$INSTANCE_ID" \
-                --query 'StandardErrorContent' --output text
-              exit 1
+                --query 'Status' \
+                --output text 2>/dev/null || echo "Pending")
+
+              echo "[$INSTANCE_ID] Attempt $i: $STATUS"
+
+              if [ "$STATUS" = "Success" ]; then
+                echo "[$INSTANCE_ID] Deployment succeeded"
+                aws ssm get-command-invocation \
+                  --command-id "$COMMAND_ID" \
+                  --instance-id "$INSTANCE_ID" \
+                  --query 'StandardOutputContent' \
+                  --output text
+                SUCCESS=1
+                break
+              elif [ "$STATUS" = "Failed" ] || [ "$STATUS" = "TimedOut" ] || [ "$STATUS" = "Cancelled" ]; then
+                echo "[$INSTANCE_ID] Deployment failed: $STATUS"
+                aws ssm get-command-invocation \
+                  --command-id "$COMMAND_ID" \
+                  --instance-id "$INSTANCE_ID" \
+                  --query 'StandardErrorContent' \
+                  --output text
+                FAILED=1
+                break
+              fi
+              sleep 10
+            done
+
+            if [ "$SUCCESS" = "0" ] && [ "$FAILED" = "0" ]; then
+              echo "[$INSTANCE_ID] Timed out waiting"
+              FAILED=1
             fi
-
-            sleep 10
           done
 
-          echo "Timed out waiting for deployment"
-          exit 1
+          if [ "$FAILED" = "1" ]; then
+            echo ""
+            echo "One or more instances failed to deploy!"
+            exit 1
+          fi
+
+          echo ""
+          echo "All instances deployed successfully!"
+
+      - name: Notify success
+        if: success()
+        run: |
+          echo "Deployment to mini-jira-asg complete"
+          echo "ALB: mini-jira-alb-548959900.us-east-1.elb.amazonaws.com"
+          echo "CloudFront: https://d1kjmg4gujmstj.cloudfront.net"
+
+      - name: Notify failure
+        if: failure()
+        run: |
+          echo "Deployment FAILED — check SSM command logs above"
