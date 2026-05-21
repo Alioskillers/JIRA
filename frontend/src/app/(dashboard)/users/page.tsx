@@ -16,7 +16,7 @@ import toast from 'react-hot-toast';
 export default function UsersPage() {
   const router = useRouter();
   const user = useAuthStore(s => s.user);
-  const { users, fetchUsers } = useTeamStore();
+  const { users, fetchUsers, fetchTeams } = useTeamStore();
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -27,8 +27,8 @@ export default function UsersPage() {
       router.push('/dashboard');
       return;
     }
-    fetchUsers().finally(() => setLoading(false));
-  }, [user, router, fetchUsers]);
+    Promise.all([fetchUsers(), fetchTeams()]).finally(() => setLoading(false));
+  }, [user, router, fetchUsers, fetchTeams]);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -63,7 +63,7 @@ export default function UsersPage() {
       {users.length === 0 ? (
         <EmptyState icon={UserCog} title="No users" description="Invite users to your workspace" />
       ) : (
-        <UserTable users={users} onDelete={setDeleteTarget} isManager />
+        <UserTable users={users} onDelete={setDeleteTarget} onRefresh={fetchUsers} isManager />
       )}
 
       <UserForm open={showForm} onOpenChange={setShowForm} onSuccess={fetchUsers} />

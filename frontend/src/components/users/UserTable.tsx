@@ -1,16 +1,57 @@
 'use client';
 
-import { Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Trash2, Loader2 } from 'lucide-react';
 import { User } from '@/types';
 import { getInitials } from '@/lib/utils';
+import { useTeamStore } from '@/store/teamStore';
+import api from '@/lib/api';
+import toast from 'react-hot-toast';
 
 interface UserTableProps {
   users: User[];
   onDelete?: (userId: string) => void;
+  onRefresh?: () => void;
   isManager?: boolean;
 }
 
-export function UserTable({ users, onDelete, isManager }: UserTableProps) {
+function TeamCell({ user, teams, onRefresh }: { user: User; teams: { teamId: string; name: string }[]; onRefresh?: () => void }) {
+  const [saving, setSaving] = useState(false);
+
+  const handleChange = async (teamId: string) => {
+    setSaving(true);
+    try {
+      await api.patch(`/users/${user.userId}`, { teamId: teamId || 'unassigned' });
+      toast.success(`${user.name} assigned to ${teams.find(t => t.teamId === teamId)?.name ?? 'no team'}`);
+      onRefresh?.();
+    } catch {
+      toast.error('Failed to update team');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      {saving && <Loader2 className="w-3.5 h-3.5 animate-spin text-zinc-500 flex-shrink-0" />}
+      <select
+        defaultValue={user.teamId === 'unassigned' ? '' : (user.teamId ?? '')}
+        onChange={e => handleChange(e.target.value)}
+        disabled={saving}
+        className="bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-sky-500 disabled:opacity-50 transition-colors"
+      >
+        <option value="">No team</option>
+        {teams.map(t => (
+          <option key={t.teamId} value={t.teamId}>{t.name}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+export function UserTable({ users, onDelete, onRefresh, isManager }: UserTableProps) {
+  const { teams } = useTeamStore();
+
   return (
     <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
       <table className="w-full">
@@ -44,7 +85,15 @@ export function UserTable({ users, onDelete, isManager }: UserTableProps) {
                   {user.role}
                 </span>
               </td>
-              <td className="px-5 py-3 text-sm text-zinc-400">{user.teamId || '—'}</td>
+              <td className="px-5 py-3">
+                {isManager ? (
+                  <TeamCell user={user} teams={teams} onRefresh={onRefresh} />
+                ) : (
+                  <span className="text-sm text-zinc-400">
+                    {teams.find(t => t.teamId === user.teamId)?.name ?? (user.teamId === 'unassigned' ? '—' : user.teamId ?? '—')}
+                  </span>
+                )}
+              </td>
               {isManager && (
                 <td className="px-5 py-3 text-right">
                   <button
