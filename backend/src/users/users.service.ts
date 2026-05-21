@@ -92,6 +92,23 @@ export class UsersService {
   }
 
   async update(userId: string, dto: any) {
+    const user = await this.findOne(userId);
+
+    // ── Cognito update ────────────────────────────────────────────────────
+    const cognitoAttrs: { Name: string; Value: string }[] = [];
+    if (dto.name)              cognitoAttrs.push({ Name: 'name',           Value: dto.name });
+    if (dto.role)              cognitoAttrs.push({ Name: 'custom:role',    Value: dto.role });
+    if (dto.teamId !== undefined) cognitoAttrs.push({ Name: 'custom:teamId', Value: dto.teamId || 'unassigned' });
+
+    if (cognitoAttrs.length > 0) {
+      await this.awsService.cognito.send(new AdminUpdateUserAttributesCommand({
+        UserPoolId: this.userPoolId,
+        Username: user['email'],
+        UserAttributes: cognitoAttrs,
+      }));
+    }
+
+    // ── DynamoDB update ───────────────────────────────────────────────────
     const expressions: string[] = [];
     const attrNames: Record<string, string> = {};
     const attrValues: Record<string, any> = {};
@@ -108,7 +125,7 @@ export class UsersService {
     }
     if (dto.teamId !== undefined) {
       expressions.push('teamId = :teamId');
-      attrValues[':teamId'] = dto.teamId;
+      attrValues[':teamId'] = dto.teamId || 'unassigned';
     }
 
     expressions.push('updatedAt = :updatedAt');
