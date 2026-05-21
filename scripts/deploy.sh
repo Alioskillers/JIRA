@@ -2,7 +2,7 @@
 set -euo pipefail
 
 APP_DIR=/home/ec2-user/app
-LOG=/var/log/deploy.log
+LOG=/tmp/deploy.log
 
 echo "=== Deploy started at $(date) ===" | tee -a $LOG
 
