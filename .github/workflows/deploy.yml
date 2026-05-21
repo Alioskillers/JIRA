@@ -21,6 +21,13 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
+      - name: Upload deploy script to S3
+        run: |
+          aws s3 cp scripts/deploy.sh \
+            s3://mini-jira-originals-438987839653/scripts/deploy.sh \
+            --region us-east-1
+          echo "Deploy script uploaded"
+
       - name: Get all healthy instance IDs from ASG
         id: get-instances
         run: |
@@ -52,31 +59,7 @@ jobs:
           COMMAND_ID=$(aws ssm send-command \
             --targets "$TARGETS" \
             --document-name "AWS-RunShellScript" \
-            --parameters commands='[
-              "set -e",
-              "APP_DIR=/home/ec2-user/app",
-              "echo === Starting deployment on $(hostname) ===",
-              "if [ ! -d $APP_DIR/.git ]; then sudo -u ec2-user git clone https://github.com/Alioskillers/JIRA.git $APP_DIR; fi",
-              "cd $APP_DIR",
-              "sudo -u ec2-user git fetch origin main",
-              "sudo -u ec2-user git reset --hard origin/main",
-              "echo === Building backend ===",
-              "cd $APP_DIR/backend",
-              "sudo -u ec2-user npm install --production=false",
-              "sudo -u ec2-user npm run build",
-              "echo === Building frontend ===",
-              "cd $APP_DIR/frontend",
-              "sudo -u ec2-user npm install",
-              "sudo -u ec2-user npm run build",
-              "echo === Restarting PM2 ===",
-              "sudo -u ec2-user bash -c \"cd $APP_DIR/backend && pm2 restart mini-jira 2>/dev/null || pm2 start dist/main.js --name mini-jira\"",
-              "sudo -u ec2-user bash -c \"cd $APP_DIR/frontend && pm2 restart mini-jira-frontend 2>/dev/null || pm2 start npm --name mini-jira-frontend -- start -- -p 3001\"",
-              "sudo -u ec2-user pm2 save",
-              "sleep 5",
-              "echo === Health check ===",
-              "curl -sf http://localhost:3000/api/health && echo Backend OK || echo Backend FAILED",
-              "echo === Deployment complete on $(hostname) ==="
-            ]' \
+            --parameters commands='["aws s3 cp s3://mini-jira-originals-438987839653/scripts/deploy.sh /tmp/deploy.sh --region us-east-1 && chmod +x /tmp/deploy.sh && bash /tmp/deploy.sh"]' \
             --timeout-seconds 1800 \
             --region us-east-1 \
             --query 'Command.CommandId' \
@@ -97,7 +80,6 @@ jobs:
             echo ""
             echo "--- Polling $INSTANCE_ID ---"
             SUCCESS=0
-            # 120 attempts x 15s = 30 min max wait
             for i in $(seq 1 120); do
               STATUS=$(aws ssm get-command-invocation \
                 --command-id "$COMMAND_ID" \
@@ -147,14 +129,11 @@ jobs:
             exit 1
           fi
 
-          echo ""
           echo "All instances deployed successfully!"
 
       - name: Notify success
         if: success()
-        run: |
-          echo "Deployment complete!"
-          echo "CloudFront: https://d1kjmg4gujmstj.cloudfront.net"
+        run: echo "Deployment complete! https://d1kjmg4gujmstj.cloudfront.net"
 
       - name: Notify failure
         if: failure()
