@@ -1,0 +1,90 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Deploy via SSM
+        run: |
+          aws ssm send-command \
+            --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=[
+              "set -e",
+              "cd /home/ec2-user/JIRA",
+              "git pull origin main",
+              "echo \"=== Building backend ===\"",
+              "cd backend",
+              "npm install --production=false",
+              "npm run build",
+              "cd ..",
+              "echo \"=== Building frontend ===\"",
+              "cd frontend",
+              "npm install",
+              "npm run build",
+              "cd ..",
+              "echo \"=== Restarting PM2 ===\"",
+              "pm2 restart backend || pm2 start backend/dist/main.js --name backend",
+              "pm2 restart frontend || pm2 start \"npm start\" --name frontend --cwd frontend",
+              "pm2 save",
+              "echo \"=== Deploy complete ===\""
+            ]' \
+            --timeout-seconds 300 \
+            --region us-east-1 \
+            --query 'Command.CommandId' \
+            --output text > /tmp/command_id.txt
+
+          echo "SSM Command ID: $(cat /tmp/command_id.txt)"
+
+      - name: Wait for deployment to finish
+        run: |
+          COMMAND_ID=$(cat /tmp/command_id.txt)
+          INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID }}"
+
+          echo "Waiting for command $COMMAND_ID to complete..."
+          for i in $(seq 1 30); do
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$INSTANCE_ID" \
+              --query 'Status' --output text 2>/dev/null || echo "Pending")
+
+            echo "Attempt $i: Status = $STATUS"
+
+            if [ "$STATUS" = "Success" ]; then
+              echo "Deployment succeeded!"
+              aws ssm get-command-invocation \
+                --command-id "$COMMAND_ID" \
+                --instance-id "$INSTANCE_ID" \
+                --query 'StandardOutputContent' --output text
+              exit 0
+            elif [ "$STATUS" = "Failed" ] || [ "$STATUS" = "TimedOut" ] || [ "$STATUS" = "Cancelled" ]; then
+              echo "Deployment failed with status: $STATUS"
+              aws ssm get-command-invocation \
+                --command-id "$COMMAND_ID" \
+                --instance-id "$INSTANCE_ID" \
+                --query 'StandardErrorContent' --output text
+              exit 1
+            fi
+
+            sleep 10
+          done
+
+          echo "Timed out waiting for deployment"
+          exit 1
