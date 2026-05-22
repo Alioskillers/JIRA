@@ -48,6 +48,8 @@ npm run start        # production
 
 ## Demo Scenario — Ali (Manager) → Sara + Omar
 
+Demo Video: https://drive.google.com/file/d/1gctpX-rkJ0Ym6-67aqe71S_iODeZepON/view?usp=sharing
+
 1. **Ali (manager)** logs in at https://d1kjmg4gujmstj.cloudfront.net/login
 2. Ali creates teams: "Frontend Team" and "Backend Team"
 3. Ali invites **Sara** (employee, Frontend Team) and **Omar** (employee, Backend Team)
